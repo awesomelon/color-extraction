@@ -58,7 +58,6 @@ export class ColorExtractor {
       const colors = sortedColors.slice(1).map(c => c.rgb);
       const finalResult = { colors, dominantColor };
 
-
       ColorExtractor.cache.set(cacheKey, finalResult);
       return finalResult;
     } catch (error) {
@@ -75,8 +74,7 @@ export class ColorExtractor {
    */
   _prepareCanvas(img) {
     const maxSize = 1000;
-    let width = img.width;
-    let height = img.height;
+    let { width, height } = img;
 
     if (width > maxSize || height > maxSize) {
       const ratio = Math.min(maxSize / width, maxSize / height);
@@ -152,16 +150,13 @@ export class ColorExtractor {
     const colorThreshold = 20;
 
     colors.forEach((color, index) => {
-      const isSimilar = filteredColors.some(existingColor =>
+      const similarColorIndex = filteredColors.findIndex(existingColor =>
           chroma.deltaE(color.rgb, existingColor.rgb) < colorThreshold
       );
 
-      if (!isSimilar) {
+      if (similarColorIndex === -1) {
         filteredColors.push({ ...color, ratio: colorRatios[index] });
       } else {
-        const similarColorIndex = filteredColors.findIndex(existingColor =>
-            chroma.deltaE(color.rgb, existingColor.rgb) < colorThreshold
-        );
         filteredColors[similarColorIndex].ratio += colorRatios[index];
       }
     });
@@ -172,7 +167,7 @@ export class ColorExtractor {
   /**
    * Stabilize colors from multiple runs.
    * @param {{rgb: string, value: number[], ratio: number}[]} allColors - All extracted colors.
-   * @returns {{rgb: string, value: number[], ratio: number}[]} Stabilized colors.
+   * @returns {(*&{ratio})[]} Stabilized colors.
    * @private
    */
   _stabilizeColors(allColors) {
@@ -201,12 +196,7 @@ export class ColorExtractor {
    * @private
    */
   _sortColorsByRatio(colors) {
-    return colors.sort((a, b) => {
-      if (Math.abs(b.ratio - a.ratio) > 0.05) {
-        return b.ratio - a.ratio;
-      }
-      return chroma(b.rgb).luminance() - chroma(a.rgb).luminance();
-    });
+    return colors.sort((a, b) => b.ratio - a.ratio || chroma(b.rgb).luminance() - chroma(a.rgb).luminance());
   }
 
   /**
