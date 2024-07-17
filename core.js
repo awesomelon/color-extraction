@@ -1,12 +1,14 @@
 import { loadImage, createCanvas } from "canvas";
 import { kmeans } from "ml-kmeans";
+import NodeCache from "node-cache";
+import chroma from "chroma-js";
 
 /**
  * ColorExtractor class for extracting dominant colors from images.
  */
 export class ColorExtractor {
   static instance;
-  static cache = new Map();
+  static cache = new NodeCache({ stdTTL: 3600 });
 
   /**
    * Get the singleton instance of ColorExtractor.
@@ -24,80 +26,111 @@ export class ColorExtractor {
    * @param {string} imagePath - Path to the image file.
    * @param {number} [k=10] - Number of colors to extract.
    * @param {number} [sampleRate=0.1] - Rate of pixel sampling.
-   * @param {Object} [options={}] - Additional options.
-   * @param {number} [options.minColorDifference=20] - Minimum difference between colors.
    * @returns {Promise<{colors: string[], dominantColor: string}>} Extracted colors and dominant color.
-   * @throws {Error} If there's an error during extraction.
    */
-  async extractColors(imagePath, k = 10, sampleRate = 0.1, options = {}) {
-    const { minColorDifference = 20 } = options;
-
-    if (ColorExtractor.cache.has(imagePath)) {
-      return ColorExtractor.cache.get(imagePath);
+  async extractColors(imagePath, k = 10, sampleRate = 0.1) {
+    const cacheKey = `${imagePath}_${k}_${sampleRate}`;
+    const cachedResult = ColorExtractor.cache.get(cacheKey);
+    if (cachedResult) {
+      return cachedResult;
     }
 
     try {
       const img = await loadImage(imagePath);
-      const canvas = createCanvas(img.width, img.height);
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, img.width, img.height);
+      const { canvas, ctx } = this._prepareCanvas(img);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      const pixels = this._systematicSamplePixels(imageData, canvas.width, canvas.height, sampleRate);
 
-      const imageData = ctx.getImageData(0, 0, img.width, img.height).data;
-      const pixels = this._samplePixels(imageData, sampleRate);
+      const runs = 5;
+      let allColors = [];
+      for (let i = 0; i < runs; i++) {
+        const result = kmeans(pixels, k, { seed: 42 });
+        const colors = this._formatColors(result.centroids);
+        const colorRatios = this._calculateColorRatios(result.clusters, k);
+        const filteredColors = this._filterSimilarColors(colors, colorRatios);
+        allColors.push(...filteredColors);
+      }
 
-      const result = kmeans(pixels, k);
-      const colors = this._formatColors(result.centroids);
-      const filteredColors = this._filterSimilarColors(colors, minColorDifference);
-      const colorRatios = this._calculateColorRatios(result.clusters, k);
-      const sortedColors = this._sortColorsByRatio(filteredColors, colorRatios);
-      const dominantColor = this._getDominantColor(colorRatios, colors);
+      const stabilizedColors = this._stabilizeColors(allColors);
+      const sortedColors = this._sortColorsByRatio(stabilizedColors);
+      const dominantColor = this._getDominantColor(sortedColors);
 
-      const extractionResult = { colors: sortedColors.map(c => c.rgb), dominantColor };
-      ColorExtractor.cache.set(imagePath, extractionResult);
+      const colors = sortedColors.slice(1).map(c => c.rgb);
+      const finalResult = { colors, dominantColor };
 
-      return extractionResult;
+
+      ColorExtractor.cache.set(cacheKey, finalResult);
+      return finalResult;
     } catch (error) {
       console.error("Error extracting colors:", error);
-      throw new Error(`Failed to extract colors: ${error.message}`);
+      throw error;
     }
   }
 
-  _samplePixels(imageData, sampleRate) {
+  /**
+   * Prepare canvas for image processing.
+   * @param {Image} img - Loaded image.
+   * @returns {{canvas: Canvas, ctx: CanvasRenderingContext2D}} Prepared canvas and context.
+   * @private
+   */
+  _prepareCanvas(img) {
+    const maxSize = 1000;
+    let width = img.width;
+    let height = img.height;
+
+    if (width > maxSize || height > maxSize) {
+      const ratio = Math.min(maxSize / width, maxSize / height);
+      width *= ratio;
+      height *= ratio;
+    }
+
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, width, height);
+    return { canvas, ctx };
+  }
+
+  /**
+   * Systematically sample pixels from image data.
+   * @param {Uint8ClampedArray} imageData - Raw image data.
+   * @param {number} width - Image width.
+   * @param {number} height - Image height.
+   * @param {number} sampleRate - Rate of pixel sampling.
+   * @returns {number[][]} Sampled pixels.
+   * @private
+   */
+  _systematicSamplePixels(imageData, width, height, sampleRate) {
     const pixels = [];
-    for (let i = 0; i < imageData.length; i += 4) {
-      if (Math.random() < sampleRate) {
+    const step = Math.round(1 / sampleRate);
+    for (let y = 0; y < height; y += step) {
+      for (let x = 0; x < width; x += step) {
+        const i = (y * width + x) * 4;
         pixels.push([imageData[i], imageData[i + 1], imageData[i + 2]]);
       }
     }
     return pixels;
   }
 
+  /**
+   * Format color centroids.
+   * @param {number[][]} centroids - Color centroids.
+   * @returns {{rgb: string, value: number[]}[]} Formatted colors.
+   * @private
+   */
   _formatColors(centroids) {
-    return centroids.map((centroid) => {
-      return {
-        rgb: `rgb(${Math.round(centroid[0])}, ${Math.round(centroid[1])}, ${Math.round(centroid[2])})`,
-        value: centroid,
-      };
-    });
+    return centroids.map((centroid) => ({
+      rgb: `rgb(${Math.round(centroid[0])}, ${Math.round(centroid[1])}, ${Math.round(centroid[2])})`,
+      value: centroid,
+    }));
   }
 
-  _filterSimilarColors(colors, minDifference) {
-    return colors.reduce((unique, color) => {
-      if (!unique.some(u => this._colorDistance(u.value, color.value) < minDifference)) {
-        unique.push(color);
-      }
-      return unique;
-    }, []);
-  }
-
-  _colorDistance(c1, c2) {
-    return Math.sqrt(
-        Math.pow(c1[0] - c2[0], 2) +
-        Math.pow(c1[1] - c2[1], 2) +
-        Math.pow(c1[2] - c2[2], 2)
-    );
-  }
-
+  /**
+   * Calculate color ratios.
+   * @param {number[]} clusters - Cluster assignments.
+   * @param {number} k - Number of clusters.
+   * @returns {number[]} Color ratios.
+   * @private
+   */
   _calculateColorRatios(clusters, k) {
     const clusterSizes = Array(k).fill(0);
     clusters.forEach((clusterIndex) => {
@@ -107,16 +140,82 @@ export class ColorExtractor {
     return clusterSizes.map((size) => size / total);
   }
 
-  _sortColorsByRatio(colors, colorRatios) {
-    return colors
-        .map((color, index) => {
-          return { ...color, ratio: colorRatios[index] };
-        })
-        .sort((a, b) => b.ratio - a.ratio);
+  /**
+   * Filter similar colors.
+   * @param {{rgb: string, value: number[]}[]} colors - Formatted colors.
+   * @param {number[]} colorRatios - Color ratios.
+   * @returns {{rgb: string, value: number[], ratio: number}[]} Filtered colors.
+   * @private
+   */
+  _filterSimilarColors(colors, colorRatios) {
+    const filteredColors = [];
+    const colorThreshold = 20;
+
+    colors.forEach((color, index) => {
+      const isSimilar = filteredColors.some(existingColor =>
+          chroma.deltaE(color.rgb, existingColor.rgb) < colorThreshold
+      );
+
+      if (!isSimilar) {
+        filteredColors.push({ ...color, ratio: colorRatios[index] });
+      } else {
+        const similarColorIndex = filteredColors.findIndex(existingColor =>
+            chroma.deltaE(color.rgb, existingColor.rgb) < colorThreshold
+        );
+        filteredColors[similarColorIndex].ratio += colorRatios[index];
+      }
+    });
+
+    return filteredColors;
   }
 
-  _getDominantColor(colorRatios, colors) {
-    const dominantIndex = colorRatios.indexOf(Math.max(...colorRatios));
-    return colors[dominantIndex].rgb;
+  /**
+   * Stabilize colors from multiple runs.
+   * @param {{rgb: string, value: number[], ratio: number}[]} allColors - All extracted colors.
+   * @returns {{rgb: string, value: number[], ratio: number}[]} Stabilized colors.
+   * @private
+   */
+  _stabilizeColors(allColors) {
+    const colorMap = new Map();
+    allColors.forEach(color => {
+      const key = color.rgb;
+      if (!colorMap.has(key)) {
+        colorMap.set(key, { ...color, count: 1 });
+      } else {
+        const existing = colorMap.get(key);
+        existing.ratio += color.ratio;
+        existing.count += 1;
+      }
+    });
+
+    return Array.from(colorMap.values()).map(color => ({
+      ...color,
+      ratio: color.ratio / color.count
+    }));
+  }
+
+  /**
+   * Sort colors by ratio and perceived brightness.
+   * @param {{rgb: string, value: number[], ratio: number}[]} colors - Formatted colors with ratios.
+   * @returns {{rgb: string, value: number[], ratio: number}[]} Sorted colors.
+   * @private
+   */
+  _sortColorsByRatio(colors) {
+    return colors.sort((a, b) => {
+      if (Math.abs(b.ratio - a.ratio) > 0.05) {
+        return b.ratio - a.ratio;
+      }
+      return chroma(b.rgb).luminance() - chroma(a.rgb).luminance();
+    });
+  }
+
+  /**
+   * Get the dominant color.
+   * @param {{rgb: string, value: number[], ratio: number}[]} sortedColors - Sorted colors.
+   * @returns {string} Dominant color.
+   * @private
+   */
+  _getDominantColor(sortedColors) {
+    return sortedColors[0].rgb;
   }
 }
