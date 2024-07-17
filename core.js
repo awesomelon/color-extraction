@@ -1,18 +1,41 @@
 import { loadImage, createCanvas } from "canvas";
 import { kmeans } from "ml-kmeans";
 
+/**
+ * ColorExtractor class for extracting dominant colors from images.
+ */
 export class ColorExtractor {
   static instance;
+  static cache = new Map();
 
+  /**
+   * Get the singleton instance of ColorExtractor.
+   * @returns {ColorExtractor} The singleton instance.
+   */
   static getInstance() {
     if (!ColorExtractor.instance) {
       ColorExtractor.instance = new ColorExtractor();
     }
-
     return ColorExtractor.instance;
   }
 
-  async extractColors(imagePath, k = 10, sampleRate = 0.1) {
+  /**
+   * Extract colors from an image.
+   * @param {string} imagePath - Path to the image file.
+   * @param {number} [k=10] - Number of colors to extract.
+   * @param {number} [sampleRate=0.1] - Rate of pixel sampling.
+   * @param {Object} [options={}] - Additional options.
+   * @param {number} [options.minColorDifference=20] - Minimum difference between colors.
+   * @returns {Promise<{colors: string[], dominantColor: string}>} Extracted colors and dominant color.
+   * @throws {Error} If there's an error during extraction.
+   */
+  async extractColors(imagePath, k = 10, sampleRate = 0.1, options = {}) {
+    const { minColorDifference = 20 } = options;
+
+    if (ColorExtractor.cache.has(imagePath)) {
+      return ColorExtractor.cache.get(imagePath);
+    }
+
     try {
       const img = await loadImage(imagePath);
       const canvas = createCanvas(img.width, img.height);
@@ -24,14 +47,18 @@ export class ColorExtractor {
 
       const result = kmeans(pixels, k);
       const colors = this._formatColors(result.centroids);
+      const filteredColors = this._filterSimilarColors(colors, minColorDifference);
       const colorRatios = this._calculateColorRatios(result.clusters, k);
-      const sortedColors = this._sortColorsByRatio(colors, colorRatios);
+      const sortedColors = this._sortColorsByRatio(filteredColors, colorRatios);
       const dominantColor = this._getDominantColor(colorRatios, colors);
 
-      return { colors: sortedColors, dominantColor };
+      const extractionResult = { colors: sortedColors.map(c => c.rgb), dominantColor };
+      ColorExtractor.cache.set(imagePath, extractionResult);
+
+      return extractionResult;
     } catch (error) {
       console.error("Error extracting colors:", error);
-      throw error;
+      throw new Error(`Failed to extract colors: ${error.message}`);
     }
   }
 
@@ -54,6 +81,23 @@ export class ColorExtractor {
     });
   }
 
+  _filterSimilarColors(colors, minDifference) {
+    return colors.reduce((unique, color) => {
+      if (!unique.some(u => this._colorDistance(u.value, color.value) < minDifference)) {
+        unique.push(color);
+      }
+      return unique;
+    }, []);
+  }
+
+  _colorDistance(c1, c2) {
+    return Math.sqrt(
+        Math.pow(c1[0] - c2[0], 2) +
+        Math.pow(c1[1] - c2[1], 2) +
+        Math.pow(c1[2] - c2[2], 2)
+    );
+  }
+
   _calculateColorRatios(clusters, k) {
     const clusterSizes = Array(k).fill(0);
     clusters.forEach((clusterIndex) => {
@@ -65,11 +109,10 @@ export class ColorExtractor {
 
   _sortColorsByRatio(colors, colorRatios) {
     return colors
-      .map((color, index) => {
-        return { ...color, ratio: colorRatios[index] };
-      })
-      .sort((a, b) => b.ratio - a.ratio)
-      .map((color) => color.rgb);
+        .map((color, index) => {
+          return { ...color, ratio: colorRatios[index] };
+        })
+        .sort((a, b) => b.ratio - a.ratio);
   }
 
   _getDominantColor(colorRatios, colors) {
