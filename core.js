@@ -4,6 +4,8 @@ import NodeCache from "node-cache";
 import chroma from "chroma-js";
 import fs from "fs";
 import path from "path";
+import sharp from "sharp";
+import tempfile from "tempfile";
 
 /**
  * ColorExtractor class for extracting dominant colors from images.
@@ -43,14 +45,8 @@ export class ColorExtractor {
         throw new Error("File does not exist");
       }
 
-      const ext = path.extname(imagePath).toLowerCase();
-      if (ext !== ".png" && ext !== ".jpg" && ext !== ".jpeg") {
-        throw new Error(
-          "Unsupported file format. Only PNG and JPG files are supported.",
-        );
-      }
-
-      const img = await this._loadImage(imagePath);
+      const pngImagePath = await this._convertToPNG(imagePath);
+      const img = await this._loadImage(pngImagePath);
       const { canvas, ctx } = this._prepareCanvas(img);
       const imageData = ctx.getImageData(
         0,
@@ -91,27 +87,36 @@ export class ColorExtractor {
   }
 
   /**
+   * Convert an image to PNG format.
+   * @param {string} imagePath - Path to the image file.
+   * @returns {Promise<string>} Path to the converted PNG image.
+   * @private
+   */
+  async _convertToPNG(imagePath) {
+    const pngImagePath = tempfile({
+      extension: "png",
+    });
+    await sharp(imagePath).png().toFile(pngImagePath);
+    return pngImagePath;
+  }
+
+  /**
+   * Load an image based on its file extension.
+   * @param {string} imagePath - Path to the image file.
+   * @returns {Promise<Bitmap>} Loaded image.
+   * @private
+   */
+  /**
    * Load an image based on its file extension.
    * @param {string} imagePath - Path to the image file.
    * @returns {Promise<Bitmap>} Loaded image.
    * @private
    */
   async _loadImage(imagePath) {
-    const ext = path.extname(imagePath).toLowerCase();
     const stream = fs.createReadStream(imagePath);
 
     try {
-      switch (ext) {
-        case ".png":
-          return await pureimage.decodePNGFromStream(stream);
-        case ".jpg":
-        case ".jpeg":
-          return await pureimage.decodeJPEGFromStream(stream);
-        default:
-          throw new Error(
-            "Unsupported file format. Only PNG and JPG files are supported.",
-          );
-      }
+      return await pureimage.decodePNGFromStream(stream);
     } catch (error) {
       console.error(`Error loading image from path: ${imagePath}`, error);
       throw new Error(

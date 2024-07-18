@@ -1,6 +1,6 @@
 {
   "name": "color-extraction",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "",
   "type": "module",
   "scripts": {
@@ -9,7 +9,9 @@
   "keywords": [
     "canvas",
     "kmeans",
-    "pureimage"
+    "pureimage",
+    "sharp",
+    "tempfile"
   ],
   "author": "j-ho",
   "license": "ISC",
@@ -20,7 +22,9 @@
     "ml-kmeans": "^6.0.0",
     "multer": "^1.4.5-lts.1",
     "node-cache": "^5.1.2",
-    "pureimage": "^0.4.13"
+    "pureimage": "^0.4.13",
+    "sharp": "^0.33.4",
+    "tempfile": "^5.0.0"
   },
   "devDependencies": {
     "prettier": "^3.3.3"
