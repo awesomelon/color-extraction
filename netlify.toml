@@ -1,6 +1,9 @@
+[functions]
+    external_node_modules = ["express"]
+    node_bundler = "esbuild"
 [build]
-publish = ""
-command = "npm run build"
+    publish = ""
+    command = "npm run build"
 [build.environment]
-NODE_VERSION = "20.11.0"
-NPM_VERSION = "10.2.4"
+    NODE_VERSION = "20.11.0"
+    NPM_VERSION = "10.2.4"

@@ -1,9 +1,10 @@
-import express from "express";
+import express, { Router } from "express";
 import multer from "multer";
 import path, { dirname } from "path";
 import fs from "fs";
 import { ColorExtractor } from "./core.js";
 import { fileURLToPath } from "url";
+import serverless from "serverless-http";
 
 const app = express();
 const port = 3000;
@@ -60,4 +61,4 @@ app.get("/", (req, res) => {
 });
 app.post("/upload", upload.single("image"), handleFileUpload);
 
-startServer(port);
+export const handler = serverless(app);
