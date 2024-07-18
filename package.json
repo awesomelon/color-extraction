@@ -4,8 +4,7 @@
   "description": "",
   "type": "module",
   "scripts": {
-    "build": "netlify-lambda build express",
-    "start": "node server-local.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
     "canvas",
@@ -15,18 +14,13 @@
   "author": "j-ho",
   "license": "ISC",
   "dependencies": {
-    "@netlify/functions": "^2.8.1",
-    "netlify-cli": "^17.17.1",
-    "netlify-lambda": "^2.0.16",
     "chroma-js": "^2.4.2",
     "color-convert": "^2.0.1",
     "express": "^4.19.2",
     "ml-kmeans": "^6.0.0",
     "multer": "^1.4.5-lts.1",
     "node-cache": "^5.1.2",
-    "nodemon": "^3.1.4",
-    "pureimage": "^0.4.13",
-    "serverless-http": "^3.2.0"
+    "pureimage": "^0.4.13"
   },
   "devDependencies": {
     "prettier": "^3.3.3"

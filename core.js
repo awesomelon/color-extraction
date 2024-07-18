@@ -1,8 +1,8 @@
-import pureimage from 'pureimage';
+import pureimage from "pureimage";
 import { kmeans } from "ml-kmeans";
 import NodeCache from "node-cache";
 import chroma from "chroma-js";
-import fs from 'fs';
+import fs from "fs";
 import path from "path";
 
 /**
@@ -44,14 +44,26 @@ export class ColorExtractor {
       }
 
       const ext = path.extname(imagePath).toLowerCase();
-      if (ext !== '.png' && ext !== '.jpg' && ext !== '.jpeg') {
-        throw new Error("Unsupported file format. Only PNG and JPG files are supported.");
+      if (ext !== ".png" && ext !== ".jpg" && ext !== ".jpeg") {
+        throw new Error(
+          "Unsupported file format. Only PNG and JPG files are supported.",
+        );
       }
 
       const img = await this._loadImage(imagePath);
       const { canvas, ctx } = this._prepareCanvas(img);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-      const pixels = this._systematicSamplePixels(imageData, canvas.width, canvas.height, sampleRate);
+      const imageData = ctx.getImageData(
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+      ).data;
+      const pixels = this._systematicSamplePixels(
+        imageData,
+        canvas.width,
+        canvas.height,
+        sampleRate,
+      );
 
       const runs = 5;
       let allColors = [];
@@ -67,7 +79,7 @@ export class ColorExtractor {
       const sortedColors = this._sortColorsByRatio(stabilizedColors);
       const dominantColor = this._getDominantColor(sortedColors);
 
-      const colors = sortedColors.slice(1).map(c => c.rgb);
+      const colors = sortedColors.slice(1).map((c) => c.rgb);
       const finalResult = { colors, dominantColor };
 
       ColorExtractor.cache.set(cacheKey, finalResult);
@@ -88,14 +100,23 @@ export class ColorExtractor {
     const ext = path.extname(imagePath).toLowerCase();
     const stream = fs.createReadStream(imagePath);
 
-    switch (ext) {
-      case '.png':
-        return await pureimage.decodePNGFromStream(stream);
-      case '.jpg':
-      case '.jpeg':
-        return await pureimage.decodeJPEGFromStream(stream);
-      default:
-        throw new Error("Unsupported file format. Only PNG and JPG files are supported.");
+    try {
+      switch (ext) {
+        case ".png":
+          return await pureimage.decodePNGFromStream(stream);
+        case ".jpg":
+        case ".jpeg":
+          return await pureimage.decodeJPEGFromStream(stream);
+        default:
+          throw new Error(
+            "Unsupported file format. Only PNG and JPG files are supported.",
+          );
+      }
+    } catch (error) {
+      console.error(`Error loading image from path: ${imagePath}`, error);
+      throw new Error(
+        "Failed to load image. Please ensure the file is not corrupted and is in PNG or JPG format.",
+      );
     }
   }
 
@@ -185,8 +206,9 @@ export class ColorExtractor {
     const colorThreshold = 20;
 
     colors.forEach((color, index) => {
-      const similarColorIndex = filteredColors.findIndex(existingColor =>
-          chroma.deltaE(color.rgb, existingColor.rgb) < colorThreshold
+      const similarColorIndex = filteredColors.findIndex(
+        (existingColor) =>
+          chroma.deltaE(color.rgb, existingColor.rgb) < colorThreshold,
       );
 
       if (similarColorIndex === -1) {
@@ -207,7 +229,7 @@ export class ColorExtractor {
    */
   _stabilizeColors(allColors) {
     const colorMap = new Map();
-    allColors.forEach(color => {
+    allColors.forEach((color) => {
       const key = color.rgb;
       if (!colorMap.has(key)) {
         colorMap.set(key, { ...color, count: 1 });
@@ -218,9 +240,9 @@ export class ColorExtractor {
       }
     });
 
-    return Array.from(colorMap.values()).map(color => ({
+    return Array.from(colorMap.values()).map((color) => ({
       ...color,
-      ratio: color.ratio / color.count
+      ratio: color.ratio / color.count,
     }));
   }
 
@@ -231,7 +253,11 @@ export class ColorExtractor {
    * @private
    */
   _sortColorsByRatio(colors) {
-    return colors.sort((a, b) => b.ratio - a.ratio || chroma(b.rgb).luminance() - chroma(a.rgb).luminance());
+    return colors.sort(
+      (a, b) =>
+        b.ratio - a.ratio ||
+        chroma(b.rgb).luminance() - chroma(a.rgb).luminance(),
+    );
   }
 
   /**
