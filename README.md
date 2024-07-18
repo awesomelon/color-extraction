@@ -1,6 +1,6 @@
 # ColorExtractor
 
-ColorExtractor is a JavaScript class for extracting dominant colors from images. It uses the k-means clustering algorithm to identify the dominant color and other major colors in an image.
+ColorExtractor is a JavaScript class for extracting dominant colors from images. It uses the K-Means clustering algorithm to identify the dominant color and other major colors in an image.
 
 ![video](./assets/video.gif)
 
@@ -19,9 +19,9 @@ ColorExtractor is a JavaScript class for extracting dominant colors from images.
 To use this project, you need to install the following packages:
 
 ```bash
-$ npm install pureimage ml-kmeans node-cache chroma-js
+$ npm install pureimage ml-kmeans node-cache chroma-js sharp tempfile
 
-$ node server.js
+$ npm run start
 
 $ http://localhost:3000
 ```
@@ -69,6 +69,8 @@ Returns: `Promise<{colors: string[], dominantColor: string}>`
 - The process includes multiple runs and result stabilization for consistency, which may increase processing time.
 - Clustering of colors is performed using the K-Means algorithm, which helps in accurately identifying and grouping similar colors.
 - The library uses caching (via node-cache) to store results temporarily for improved performance. Cached results are stored for 1 hour by default.
+- he library uses sharp to convert images to PNG format for consistent processing.
+- Temporary files are managed using the tempfile library to avoid naming conflicts and ensure proper cleanup.
 
 ## License
 This project is distributed under the MIT License.
