@@ -1,7 +1,9 @@
-import { loadImage, createCanvas } from "canvas";
+import pureimage from 'pureimage';
 import { kmeans } from "ml-kmeans";
 import NodeCache from "node-cache";
 import chroma from "chroma-js";
+import fs from 'fs';
+import path from "path";
 
 /**
  * ColorExtractor class for extracting dominant colors from images.
@@ -36,7 +38,17 @@ export class ColorExtractor {
     }
 
     try {
-      const img = await loadImage(imagePath);
+      // 파일 형식 및 경로 확인
+      if (!fs.existsSync(imagePath)) {
+        throw new Error("File does not exist");
+      }
+
+      const ext = path.extname(imagePath).toLowerCase();
+      if (ext !== '.png' && ext !== '.jpg' && ext !== '.jpeg') {
+        throw new Error("Unsupported file format. Only PNG and JPG files are supported.");
+      }
+
+      const img = await this._loadImage(imagePath);
       const { canvas, ctx } = this._prepareCanvas(img);
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
       const pixels = this._systematicSamplePixels(imageData, canvas.width, canvas.height, sampleRate);
@@ -67,6 +79,27 @@ export class ColorExtractor {
   }
 
   /**
+   * Load an image based on its file extension.
+   * @param {string} imagePath - Path to the image file.
+   * @returns {Promise<Bitmap>} Loaded image.
+   * @private
+   */
+  async _loadImage(imagePath) {
+    const ext = path.extname(imagePath).toLowerCase();
+    const stream = fs.createReadStream(imagePath);
+
+    switch (ext) {
+      case '.png':
+        return await pureimage.decodePNGFromStream(stream);
+      case '.jpg':
+      case '.jpeg':
+        return await pureimage.decodeJPEGFromStream(stream);
+      default:
+        throw new Error("Unsupported file format. Only PNG and JPG files are supported.");
+    }
+  }
+
+  /**
    * Prepare canvas for image processing.
    * @param {Image} img - Loaded image.
    * @returns {{canvas: Canvas, ctx: CanvasRenderingContext2D}} Prepared canvas and context.
@@ -78,11 +111,11 @@ export class ColorExtractor {
 
     if (width > maxSize || height > maxSize) {
       const ratio = Math.min(maxSize / width, maxSize / height);
-      width *= ratio;
-      height *= ratio;
+      width = Math.floor(width * ratio);
+      height = Math.floor(height * ratio);
     }
 
-    const canvas = createCanvas(width, height);
+    const canvas = pureimage.make(width, height);
     const ctx = canvas.getContext("2d");
     ctx.drawImage(img, 0, 0, width, height);
     return { canvas, ctx };
@@ -103,7 +136,9 @@ export class ColorExtractor {
     for (let y = 0; y < height; y += step) {
       for (let x = 0; x < width; x += step) {
         const i = (y * width + x) * 4;
-        pixels.push([imageData[i], imageData[i + 1], imageData[i + 2]]);
+        if (i + 2 < imageData.length) {
+          pixels.push([imageData[i], imageData[i + 1], imageData[i + 2]]);
+        }
       }
     }
     return pixels;
@@ -203,7 +238,6 @@ export class ColorExtractor {
    * Get the dominant color.
    * @param {{rgb: string, value: number[], ratio: number}[]} sortedColors - Sorted colors.
    * @returns {string} Dominant color.
-   * @private
    */
   _getDominantColor(sortedColors) {
     return sortedColors[0].rgb;
