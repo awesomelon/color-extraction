@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "nodemon server.js"
+    "build": "nodemon functions/server.js"
   },
   "keywords": [
     "canvas",
@@ -16,6 +16,8 @@
   "license": "ISC",
   "dependencies": {
     "@netlify/functions": "^2.8.1",
+    "netlify-cli": "^17.17.1",
+    "netlify-lambda": "^2.0.16",
     "chroma-js": "^2.4.2",
     "color-convert": "^2.0.1",
     "express": "^4.19.2",

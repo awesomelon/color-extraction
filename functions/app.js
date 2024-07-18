@@ -1,13 +1,12 @@
 import express, { Router } from "express";
 import multer from "multer";
-import path, { dirname } from "path";
+import path from "path";
 import fs from "fs";
-import { ColorExtractor } from "./core.js";
-import { fileURLToPath } from "url";
+import { ColorExtractor } from "../core.js";
 import serverless from "serverless-http";
 
 const app = express();
-const port = 3000;
+const router = Router();
 
 function ensureUploadDirExists(uploadDir) {
   if (!fs.existsSync(uploadDir)) {
@@ -46,19 +45,12 @@ async function handleFileUpload(req, res) {
   }
 }
 
-function startServer(port) {
-  app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
-  });
-}
-
 const uploadDir = "uploads";
 ensureUploadDirExists(uploadDir);
 const upload = initMulter(uploadDir);
 
-app.get("/", (req, res) => {
-  res.sendFile(path.join(dirname(fileURLToPath(import.meta.url)), "demo.html"));
-});
-app.post("/upload", upload.single("image"), handleFileUpload);
+router().post("/upload", upload.single("image"), handleFileUpload);
+
+app.use("/.netlify/functions/app", router);
 
 export const handler = serverless(app);
