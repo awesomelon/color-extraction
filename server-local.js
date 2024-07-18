@@ -1,4 +1,4 @@
-import { app } from "./functions/app.js";
+import { server } from "./express/server.js";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
@@ -47,12 +47,12 @@ const uploadDir = "uploads";
 ensureUploadDirExists(uploadDir);
 const upload = initMulter(uploadDir);
 
-app.get("/", (req, res) => {
+server.get("/", (req, res) => {
   res.sendFile(path.join(dirname(fileURLToPath(import.meta.url)), "demo.html"));
 });
 
-app.post("/upload", upload.single("image"), handleFileUpload);
+server.post("/upload", upload.single("image"), handleFileUpload);
 
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`http://localhost:${port}`);
 });
