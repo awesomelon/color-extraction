@@ -1,5 +1,5 @@
 [build]
-publish = ""
+publish = "demo.html"
 command = ""
 [build.environment]
 NODE_VERSION = "14"
