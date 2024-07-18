@@ -3,7 +3,6 @@ import { kmeans } from "ml-kmeans";
 import NodeCache from "node-cache";
 import chroma from "chroma-js";
 import fs from "fs";
-import path from "path";
 import sharp from "sharp";
 import tempfile from "tempfile";
 
@@ -30,9 +29,15 @@ export class ColorExtractor {
    * @param {string} imagePath - Path to the image file.
    * @param {number} [k=10] - Number of colors to extract.
    * @param {number} [sampleRate=0.1] - Rate of pixel sampling.
+   * @param {boolean} onFilterSimilarColors - On Filter Similar Colors
    * @returns {Promise<{colors: string[], dominantColor: string}>} Extracted colors and dominant color.
    */
-  async extractColors(imagePath, k = 10, sampleRate = 0.1) {
+  async extractColors(
+    imagePath,
+    k = 10,
+    sampleRate = 0.1,
+    onFilterSimilarColors = false,
+  ) {
     const cacheKey = `${imagePath}_${k}_${sampleRate}`;
     const cachedResult = ColorExtractor.cache.get(cacheKey);
     if (cachedResult) {
@@ -66,9 +71,14 @@ export class ColorExtractor {
       for (let i = 0; i < runs; i++) {
         const result = kmeans(pixels, k, { seed: 42 });
         const colors = this._formatColors(result.centroids);
-        const colorRatios = this._calculateColorRatios(result.clusters, k);
-        const filteredColors = this._filterSimilarColors(colors, colorRatios);
-        allColors.push(...filteredColors);
+        // NOTE: Filter Similar Colors
+        if (onFilterSimilarColors) {
+          const colorRatios = this._calculateColorRatios(result.clusters, k);
+          const filteredColors = this._filterSimilarColors(colors, colorRatios);
+          allColors.push(...filteredColors);
+        } else {
+          allColors.push(...colors);
+        }
       }
 
       const stabilizedColors = this._stabilizeColors(allColors);
