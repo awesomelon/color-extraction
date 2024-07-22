@@ -1,32 +1,26 @@
 {
-  "name": "color-extraction",
-  "version": "1.0.3",
-  "description": "",
+  "name": "nodejs-color-extraction",
+  "version": "1.0.0",
+  "description": "A library to extract dominant colors from images.",
   "type": "module",
-  "scripts": {
-    "serve": "node server.js"
-  },
+  "scripts": {},
+  "main": "src/core.js",
+  "repository": "https://github.com/awesomelon/color-extraction",
   "keywords": [
-    "canvas",
+    "color",
+    "extractor",
+    "image",
     "kmeans",
-    "pureimage",
-    "sharp",
-    "tempfile"
+    "dominant colors"
   ],
   "author": "j-ho",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "chroma-js": "^2.4.2",
-    "color-convert": "^2.0.1",
-    "express": "^4.19.2",
     "ml-kmeans": "^6.0.0",
-    "multer": "^1.4.5-lts.1",
     "node-cache": "^5.1.2",
     "pureimage": "^0.4.13",
     "sharp": "^0.33.4",
     "tempfile": "^5.0.0"
-  },
-  "devDependencies": {
-    "prettier": "^3.3.3"
   }
 }
