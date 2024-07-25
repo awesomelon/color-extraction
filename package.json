@@ -1,6 +1,6 @@
 {
   "name": "nodejs-color-extraction",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A library to extract dominant colors from images.",
   "type": "module",
   "scripts": {},
