@@ -1,77 +1,57 @@
 # ColorExtractor
 
-ColorExtractor is a JavaScript class for extracting dominant colors from images. It uses the K-Means clustering algorithm to identify the dominant color and other major colors in an image.
-
-![video](./assets/video.gif)
+ColorExtractor is a utility class for extracting dominant colors from images using k-means clustering. This tool allows you to easily identify and analyze the main colors in any image, making it useful for various applications such as image analysis, design, and data visualization.o.gif)
 
 ## Features
-
-- Extract main colors from images
-- Identify the dominant color
-- Performance optimization through caching
-- Resizing for large image processing
-- Similar color filtering
-- Multiple runs and stabilization for consistent results
-- Clustering using K-Means algorithm
+- Extract dominant colors from images.
+- Filter out similar colors to provide a more distinct color palette.
+- Cache results for faster subsequent processing.
+- Supports multiple image formats (PNG, JPG).
 
 ## Installation
-
-To use this project, you need to install the following packages:
+To use ColorExtractor, install the required dependencies.
 
 ```bash
-$ npm install pureimage ml-kmeans node-cache chroma-js sharp tempfile
-
-$ npm run start
-
-$ http://localhost:3000
+$ npm install nodejs-color-extraction
 ```
 
 ## Usage
+Here is an example of how to use the ColorExtractor class.
+
 ```javascript
-import { ColorExtractor } from './path-to-color-extractor';
+import { ColorExtractor } from ' nodejs-color-extraction';
 
-const extractor = ColorExtractor.getInstance();
-
-async function extractColors() {
-  try {
-    const result = await extractor.extractColors('path/to/your/image.jpg');
-    console.log('Dominant Color:', result.dominantColor);
-    console.log('Other Colors:', result.colors);
-  } catch (error) {
-    console.error('Error extracting colors:', error);
-  }
+async function main() {
+  const colorExtractor = ColorExtractor.getInstance();
+  const result = await colorExtractor.extractColors('path/to/your/image.jpg', 10, 0.1, true);
+  console.log('Extracted Colors:', result.colors);
+  console.log('Dominant Color:', result.dominantColor);
 }
 
-extractColors();
+main();
 ```
+
 
 ## API
 
-`ColorExtractor.getInstance()`
-
-Returns the singleton instance of ColorExtractor.
-
-`extractColors(imagePath, k = 10, sampleRate = 0.1)`
+### getInstance()
+Returns the singleton instance of the ColorExtractor.
 
 
-### Extracts colors from the specified image.
-- `imagePath` (string): Path to the image file
-- `k` (number, optional): Number of colors to extract. Default is 10
-- `sampleRate` (number, optional): Pixel sampling rate. Default is 0.1
+### extractColors(imagePath, k = 10, sampleRate = 0.1, onFilterSimilarColors = false)
 
-Returns: `Promise<{colors: string[], dominantColor: string}>`
-- `colors`: List of extracted colors excluding the dominant color (array of RGB format strings)
-- `dominantColor`: The most dominant color (RGB format string)
+Extract colors from an image.
+- imagePath (string): Path to the image file.
+- k (number, optional): Number of colors to extract (default is 10).
+- sampleRate (number, optional): Rate of pixel sampling (default is 0.1).
+- onFilterSimilarColors (boolean, optional): Whether to filter similar colors (default is false).
 
-## Notes
-- This library is designed to be used in a Node.js environment.
-- Be mindful of memory usage when processing large images.
-- The process includes multiple runs and result stabilization for consistency, which may increase processing time.
-- Clustering of colors is performed using the K-Means algorithm, which helps in accurately identifying and grouping similar colors.
-- The library uses caching (via node-cache) to store results temporarily for improved performance. Cached results are stored for 1 hour by default.
-- he library uses sharp to convert images to PNG format for consistent processing.
-- Temporary files are managed using the tempfile library to avoid naming conflicts and ensure proper cleanup.
+Returns a Promise that resolves to an object containing:
+- colors (string[]): An array of extracted colors in RGB format.
+- dominantColor (string): The most dominant color in RGB format.
 
 ## License
-This project is distributed under the MIT License.
-> This README.md file provides an overview of the ColorExtractor class, including its main features, installation instructions, usage example, API description, and important notes. You can modify or expand this content based on the actual structure of your project or any additional configurations.
+
+This project is licensed under the MIT License. See the LICENSE file for details.
+
+Feel free to adjust any sections or details as needed!
