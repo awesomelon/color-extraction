@@ -1,25 +1,24 @@
-import pureimage from "pureimage";
 import { kmeans } from "ml-kmeans";
-import NodeCache from "node-cache";
 import chroma from "chroma-js";
-import fs from "fs";
-import sharp from "sharp";
-import tempfile from "tempfile";
 
 /**
  * ColorExtractor class for extracting dominant colors from images.
  */
 export class ColorExtractor {
   static instance;
-  static cache = new NodeCache({ stdTTL: 3600 });
+
+  constructor(adapter) {
+    this.adapter = adapter;
+  }
 
   /**
    * Get the singleton instance of ColorExtractor.
+   * @param {PlatformAdapter} adapter - Platform-specific adapter.
    * @returns {ColorExtractor} The singleton instance.
    */
-  static getInstance() {
+  static getInstance(adapter) {
     if (!ColorExtractor.instance) {
-      ColorExtractor.instance = new ColorExtractor();
+      ColorExtractor.instance = new ColorExtractor(adapter);
     }
     return ColorExtractor.instance;
   }
@@ -27,7 +26,7 @@ export class ColorExtractor {
   /**
    * Extract colors from an image.
    * @param {Object} options - Options for extracting colors.
-   * @param {string} options.imagePath - Path to the image file.
+   * @param {string|HTMLImageElement} options.imageSource - Path to the image file or an HTMLImageElement.
    * @param {number} [options.k=10] - Number of colors to extract.
    * @param {number} [options.sampleRate=0.1] - Rate of pixel sampling.
    * @param {boolean} [options.onFilterSimilarColors=false] - Whether to filter similar colors.
@@ -35,26 +34,15 @@ export class ColorExtractor {
    * @returns {Promise<{colors: string[], dominantColor: string}>} Extracted colors and dominant color.
    */
   async extractColors({
-    imagePath,
+    imageSource,
     k = 10,
     sampleRate = 0.1,
     onFilterSimilarColors = false,
     useHex = false,
   }) {
-    const cacheKey = `${imagePath}_${k}_${sampleRate}`;
-    const cachedResult = ColorExtractor.cache.get(cacheKey);
-    if (cachedResult) {
-      return cachedResult;
-    }
-
     try {
-      if (!fs.existsSync(imagePath)) {
-        throw new Error("File does not exist");
-      }
-
-      const pngImagePath = await this._convertToPNG(imagePath);
-      const img = await this._loadImage(pngImagePath);
-      const { canvas, ctx } = this._prepareCanvas(img);
+      const img = await this.adapter.loadImage(imageSource);
+      const { canvas, ctx } = this.adapter.prepareCanvas(img);
       const imageData = ctx.getImageData(
         0,
         0,
@@ -88,75 +76,12 @@ export class ColorExtractor {
       const dominantColor = this._getDominantColor(sortedColors);
 
       const colors = sortedColors.slice(1).map((c) => c.rgb);
-      const finalResult = { colors, dominantColor };
 
-      ColorExtractor.cache.set(cacheKey, finalResult);
-      return finalResult;
+      return { colors, dominantColor };
     } catch (error) {
       console.error("Error extracting colors:", error);
       throw error;
     }
-  }
-
-  /**
-   * Convert an image to PNG format.
-   * @param {string} imagePath - Path to the image file.
-   * @returns {Promise<string>} Path to the converted PNG image.
-   * @private
-   */
-  async _convertToPNG(imagePath) {
-    const pngImagePath = tempfile({
-      extension: "png",
-    });
-    await sharp(imagePath).png().toFile(pngImagePath);
-    return pngImagePath;
-  }
-
-  /**
-   * Load an image based on its file extension.
-   * @param {string} imagePath - Path to the image file.
-   * @returns {Promise<Bitmap>} Loaded image.
-   * @private
-   */
-  /**
-   * Load an image based on its file extension.
-   * @param {string} imagePath - Path to the image file.
-   * @returns {Promise<Bitmap>} Loaded image.
-   * @private
-   */
-  async _loadImage(imagePath) {
-    const stream = fs.createReadStream(imagePath);
-
-    try {
-      return await pureimage.decodePNGFromStream(stream);
-    } catch (error) {
-      console.error(`Error loading image from path: ${imagePath}`, error);
-      throw new Error(
-        "Failed to load image. Please ensure the file is not corrupted and is in PNG or JPG format.",
-      );
-    }
-  }
-
-  /**
-   * Prepare canvas for image processing.
-   * @param {Image} img - Loaded image.
-   * @returns {{canvas: Canvas, ctx: CanvasRenderingContext2D}} Prepared canvas and context.
-   * @private
-   */
-  _prepareCanvas(img) {
-    const maxSize = 1000;
-    let { width, height } = img;
-
-    if (width > maxSize || height > maxSize) {
-      const ratio = Math.min(maxSize / width, maxSize / height);
-      width = Math.floor(width * ratio);
-      height = Math.floor(height * ratio);
-    }
-
-    const canvas = pureimage.make(width, height);
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(img, 0, 0, width, height);
-    return { canvas, ctx };
   }
 
   /**

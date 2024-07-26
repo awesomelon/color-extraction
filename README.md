@@ -5,7 +5,6 @@ ColorExtractor is a utility class for extracting dominant colors from images usi
 ## Features
 - Extract dominant colors from images.
 - Filter out similar colors to provide a more distinct color palette.
-- Cache results for faster subsequent processing.
 - Supports multiple image formats (PNG, JPG).
 - TypeScript support with provided type definitions.
 

@@ -1,8 +1,18 @@
 import { Bitmap } from "pureimage";
 import NodeCache from "node-cache";
 
+interface PlatformAdapter {
+  loadImage(
+    imageSource: string | HTMLImageElement,
+  ): Promise<HTMLImageElement | Bitmap>;
+  prepareCanvas(img: HTMLImageElement | Bitmap): {
+    canvas: HTMLCanvasElement;
+    ctx: CanvasRenderingContext2D | any;
+  };
+}
+
 interface ExtractColorsOptions {
-  imagePath: string;
+  imageSource: string | HTMLImageElement;
   k?: number;
   sampleRate?: number;
   onFilterSimilarColors?: boolean;
@@ -25,15 +35,12 @@ export declare class ColorExtractor {
   private static instance: ColorExtractor;
   private static cache: NodeCache;
 
-  private constructor();
+  private constructor(adapter: PlatformAdapter);
 
-  static getInstance(): ColorExtractor;
+  static getInstance(adapter: PlatformAdapter): ColorExtractor;
 
   extractColors(options: ExtractColorsOptions): Promise<ExtractedColorsResult>;
 
-  private _convertToPNG(imagePath: string): Promise<string>;
-  private _loadImage(imagePath: string): Promise<Bitmap>;
-  private _prepareCanvas(img: Bitmap): { canvas: any; ctx: any };
   private _systematicSamplePixels(
     imageData: Uint8ClampedArray,
     width: number,
@@ -52,4 +59,17 @@ export declare class ColorExtractor {
   private _stabilizeColors(allColors: Color[]): Color[];
   private _sortColorsByRatio(colors: Color[]): Color[];
   private _getDominantColor(sortedColors: Color[], useHex: boolean): string;
+}
+
+export declare class BrowserAdapter implements PlatformAdapter {
+  loadImage(imageSource: string | HTMLImageElement): Promise<HTMLImageElement>;
+  prepareCanvas(img: HTMLImageElement): {
+    canvas: HTMLCanvasElement;
+    ctx: CanvasRenderingContext2D;
+  };
+}
+
+export declare class NodeAdapter implements PlatformAdapter {
+  loadImage(imageSource: string): Promise<Bitmap>;
+  prepareCanvas(img: Bitmap): { canvas: any; ctx: any };
 }
