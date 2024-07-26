@@ -1,0 +1,17 @@
+{
+  "name": "color-extraction2",
+  "version": "1.0.0",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1",
+    "nodejs-color-extraction": "^1.0.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3"
+  }
+}

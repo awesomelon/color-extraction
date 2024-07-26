@@ -26,18 +26,21 @@ export class ColorExtractor {
 
   /**
    * Extract colors from an image.
-   * @param {string} imagePath - Path to the image file.
-   * @param {number} [k=10] - Number of colors to extract.
-   * @param {number} [sampleRate=0.1] - Rate of pixel sampling.
-   * @param {boolean} onFilterSimilarColors - On Filter Similar Colors
+   * @param {Object} options - Options for extracting colors.
+   * @param {string} options.imagePath - Path to the image file.
+   * @param {number} [options.k=10] - Number of colors to extract.
+   * @param {number} [options.sampleRate=0.1] - Rate of pixel sampling.
+   * @param {boolean} [options.onFilterSimilarColors=false] - Whether to filter similar colors.
+   * @param {boolean} [options.useHex=false] - Whether to return colors in HEX format.
    * @returns {Promise<{colors: string[], dominantColor: string}>} Extracted colors and dominant color.
    */
-  async extractColors(
+  async extractColors({
     imagePath,
     k = 10,
     sampleRate = 0.1,
     onFilterSimilarColors = false,
-  ) {
+    useHex = false,
+  }) {
     const cacheKey = `${imagePath}_${k}_${sampleRate}`;
     const cachedResult = ColorExtractor.cache.get(cacheKey);
     if (cachedResult) {
@@ -45,7 +48,6 @@ export class ColorExtractor {
     }
 
     try {
-      // 파일 형식 및 경로 확인
       if (!fs.existsSync(imagePath)) {
         throw new Error("File does not exist");
       }
@@ -70,7 +72,7 @@ export class ColorExtractor {
       let allColors = [];
       for (let i = 0; i < runs; i++) {
         const result = kmeans(pixels, k, { seed: 42 });
-        const colors = this._formatColors(result.centroids);
+        const colors = this._formatColors(result.centroids, useHex);
         // NOTE: Filter Similar Colors
         if (onFilterSimilarColors) {
           const colorRatios = this._calculateColorRatios(result.clusters, k);
@@ -183,14 +185,19 @@ export class ColorExtractor {
   /**
    * Format color centroids.
    * @param {number[][]} centroids - Color centroids.
+   * @param {boolean} useHex - Whether to use HEX format.
    * @returns {{rgb: string, value: number[]}[]} Formatted colors.
    * @private
    */
-  _formatColors(centroids) {
-    return centroids.map((centroid) => ({
-      rgb: `rgb(${Math.round(centroid[0])}, ${Math.round(centroid[1])}, ${Math.round(centroid[2])})`,
-      value: centroid,
-    }));
+  _formatColors(centroids, useHex) {
+    return centroids.map((centroid) => {
+      const rgb = `rgb(${Math.round(centroid[0])}, ${Math.round(centroid[1])}, ${Math.round(centroid[2])})`;
+      const hex = chroma(rgb).hex();
+      return {
+        rgb: useHex ? hex : rgb,
+        value: centroid,
+      };
+    });
   }
 
   /**

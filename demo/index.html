@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Color Display</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .file-input-container {
+            position: relative;
+            margin: 20px 0;
+        }
+
+        .file-input-container input[type="file"] {
+            display: none;
+        }
+
+        .file-input-label {
+            background-color: #4caf50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: inline-block;
+            box-shadow: 0 4px #999;
+        }
+
+        .file-input-label:hover {
+            background-color: #45a049;
+        }
+
+        .file-input-label:active {
+            background-color: #45a049;
+            box-shadow: 0 2px #666;
+            transform: translateY(2px);
+        }
+
+        #extractButton {
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+            box-shadow: 0 4px #999;
+        }
+
+        #extractButton:hover {
+            background-color: #45a049;
+        }
+
+        #extractButton:active {
+            background-color: #45a049;
+            box-shadow: 0 2px #666;
+            transform: translateY(2px);
+        }
+
+        #imagePreview {
+            max-width: 100%;
+            max-height: 400px;
+            margin: 20px 0;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        #dominantColor {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100px;
+            height: 100px;
+            margin: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            text-align: center;
+        }
+
+        #colorsContainer {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .color-box {
+            width: 100px;
+            height: 100px;
+            display: inline-block;
+            margin: 10px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+
+        .color-box:hover {
+            transform: scale(1.1);
+        }
+
+        /* 로딩 바 스타일 */
+        #loadingBar {
+            display: none;
+            margin: 20px 0;
+        }
+        .loader {
+            border: 16px solid #f3f3f3;
+            border-top: 16px solid #3498db;
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>이미지 색상 추출기</h1>
+<div class="file-input-container">
+    <input
+            type="file"
+            id="imageInput"
+            accept="image/png, image/jpeg, image/jpg"
+    />
+    <label for="imageInput" class="file-input-label">파일 선택</label>
+</div>
+<img id="imagePreview" src="" alt="Image Preview" style="display: none" />
+<button id="extractButton" style="display: none">색상 추출</button>
+<div id="loadingBar" class="loader"></div>
+<div id="dominantColor" style="display: none">Dominant</div>
+<div id="colorsContainer"></div>
+
+<script>
+    document.getElementById("imageInput").addEventListener("change", () => {
+        const input = document.getElementById("imageInput");
+        const file = input.files[0];
+        if (!file) {
+            alert("Please select a file first.");
+            return;
+        }
+
+        // 기존 색상 박스 초기화
+        const colorsContainer = document.getElementById("colorsContainer");
+        colorsContainer.innerHTML = "";
+
+        // 지배적인 색상 초기화
+        const dominantColorBox = document.getElementById("dominantColor");
+        dominantColorBox.style.display = "none";
+        dominantColorBox.style.backgroundColor = "";
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const imagePreview = document.getElementById("imagePreview");
+            imagePreview.src = e.target.result;
+            imagePreview.style.display = "block";
+            document.getElementById("extractButton").style.display = "block";
+        };
+        reader.readAsDataURL(file);
+    });
+
+    document
+        .getElementById("extractButton")
+        .addEventListener("click", async () => {
+            const input = document.getElementById("imageInput");
+            const file = input.files[0];
+            if (!file) {
+                alert("Please select a file first.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("image", file);
+
+            // 로딩 바 표시
+            const loadingBar = document.getElementById("loadingBar");
+            loadingBar.style.display = "block";
+
+            try {
+                const response = await fetch("/upload", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to upload image");
+                }
+
+                const result = await response.json();
+                displayColors(result.colors, result.dominantColor);
+            } catch (error) {
+                console.error("Error:", error);
+                alert("Error uploading file.");
+            } finally {
+                // 로딩 바 숨기기
+                loadingBar.style.display = "none";
+            }
+        });
+
+    function displayColors(colors, dominantColor) {
+        const container = document.getElementById("colorsContainer");
+        container.innerHTML = "";
+        colors.forEach((color) => {
+            const colorDiv = document.createElement("div");
+            colorDiv.className = "color-box";
+            colorDiv.style.backgroundColor = color;
+            colorDiv.addEventListener("click", () => copyToClipboard(color));
+            container.appendChild(colorDiv);
+        });
+
+        const dominantColorBox = document.getElementById("dominantColor");
+        dominantColorBox.style.backgroundColor = dominantColor;
+        dominantColorBox.style.display = "flex";
+
+        // 이벤트 리스너를 중복 추가하지 않도록 설정
+        dominantColorBox.onclick = () => copyToClipboard(dominantColor);
+    }
+
+    function copyToClipboard(color) {
+        const tempInput = document.createElement("input");
+        tempInput.style.position = "absolute";
+        tempInput.style.left = "-9999px";
+        tempInput.value = color;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand("copy");
+        document.body.removeChild(tempInput);
+        alert(`Color ${color} copied to clipboard!`);
+    }
+</script>
+</body>
+</html>

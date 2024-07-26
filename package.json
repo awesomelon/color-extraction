@@ -1,17 +1,19 @@
 {
   "name": "nodejs-color-extraction",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A library to extract dominant colors from images.",
   "type": "module",
   "scripts": {},
   "main": "src/core.js",
+  "types": "types/core.d.ts",
   "repository": "https://github.com/awesomelon/color-extraction",
   "keywords": [
     "color",
     "extractor",
     "image",
     "kmeans",
-    "dominant colors"
+    "dominant colors",
+    "typescript"
   ],
   "author": "j-ho",
   "license": "MIT",
@@ -22,5 +24,8 @@
     "pureimage": "^0.4.13",
     "sharp": "^0.33.4",
     "tempfile": "^5.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
   }
 }
