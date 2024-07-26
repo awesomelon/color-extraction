@@ -7,6 +7,7 @@ ColorExtractor is a utility class for extracting dominant colors from images usi
 - Filter out similar colors to provide a more distinct color palette.
 - Cache results for faster subsequent processing.
 - Supports multiple image formats (PNG, JPG).
+- TypeScript support with provided type definitions.
 
 ## Installation
 To use ColorExtractor, install the required dependencies.
@@ -19,13 +20,19 @@ $ npm install nodejs-color-extraction
 Here is an example of how to use the ColorExtractor class.
 
 ```javascript
-import { ColorExtractor } from ' nodejs-color-extraction';
+import { ColorExtractor } from 'nodejs-color-extraction';
 
 async function main() {
-  const colorExtractor = ColorExtractor.getInstance();
-  const result = await colorExtractor.extractColors('path/to/your/image.jpg', 10, 0.1, true);
-  console.log('Extracted Colors:', result.colors);
-  console.log('Dominant Color:', result.dominantColor);
+    const colorExtractor = ColorExtractor.getInstance();
+    const { colors, dominantColor } = await colorExtractor.extractColors({
+        imagePath: req.file.path,
+        k: 10,
+        sampleRate: 0.1,
+        onFilterSimilarColors: false,
+        useHex: false
+    });
+  console.log('Extracted Colors:', colors);
+  console.log('Dominant Color:', dominantColor);
 }
 
 main();
@@ -38,13 +45,14 @@ main();
 Returns the singleton instance of the ColorExtractor.
 
 
-### extractColors(imagePath, k = 10, sampleRate = 0.1, onFilterSimilarColors = false)
+### extractColors(options: ExtractColorsOptions)
 
 Extract colors from an image.
-- imagePath (string): Path to the image file.
-- k (number, optional): Number of colors to extract (default is 10).
-- sampleRate (number, optional): Rate of pixel sampling (default is 0.1).
-- onFilterSimilarColors (boolean, optional): Whether to filter similar colors (default is false).
+- options.imagePath (string): Path to the image file.
+- options.k (number, optional): Number of colors to extract (default is 10).
+- options.sampleRate (number, optional): Rate of pixel sampling (default is 0.1).
+- options.onFilterSimilarColors (boolean, optional): Whether to filter similar colors (default is false).
+- options.useHex (boolean, optional): Whether to return colors in HEX format.
 
 Returns a Promise that resolves to an object containing:
 - colors (string[]): An array of extracted colors in RGB format.
