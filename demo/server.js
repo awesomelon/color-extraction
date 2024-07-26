@@ -30,12 +30,13 @@ function initMulter(uploadDir) {
 async function handleFileUpload(req, res) {
   try {
     const colorExtractor = ColorExtractor.getInstance();
-    const { colors, dominantColor } = await colorExtractor.extractColors(
-      req.file.path,
-      10,
-      0.1,
-      false,
-    );
+    const { colors, dominantColor } = await colorExtractor.extractColors({
+      imagePath: req.file.path,
+      k: 10,
+      sampleRate: 0.1,
+      onFilterSimilarColors: false,
+      useHex: true,
+    });
     fs.unlink(req.file.path, (err) => {
       if (err) {
         console.error("Failed to delete file:", err);
