@@ -1,5 +1,5 @@
 {
-  "name": "color-extraction2",
+  "name": "color-extraction-demo",
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
@@ -9,7 +9,7 @@
   "dependencies": {
     "express": "^4.19.2",
     "multer": "^1.4.5-lts.1",
-    "nodejs-color-extraction": "^1.0.2"
+    "simply-color-extraction": "^0.0.4"
   },
   "devDependencies": {
     "prettier": "^3.3.3"

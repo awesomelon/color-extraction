@@ -21,7 +21,7 @@ export class NodeAdapter {
     } catch (error) {
       console.error(`Error loading image from path: ${imageSource}`, error);
       throw new Error(
-        "Failed to load image. Please ensure the file is not corrupted and is in PNG or JPG format.",
+          "Failed to load image. Please ensure the file is not corrupted and is in PNG or JPG format.",
       );
     }
   }

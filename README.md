@@ -18,23 +18,52 @@ $ npm install nodejs-color-extraction
 ## Usage
 Here is an example of how to use the ColorExtractor class.
 
+
+### Client
+
 ```javascript
-import { ColorExtractor } from 'nodejs-color-extraction';
+import { ColorExtractor } from "simply-color-extraction";
+import { BrowserAdapter } from "simply-color-extraction/browserAdapter";
 
 async function main() {
-    const colorExtractor = ColorExtractor.getInstance();
+    const adapter = new BrowserAdapter();
+    const colorExtractor = ColorExtractor.getInstance(adapter);
     const { colors, dominantColor } = await colorExtractor.extractColors({
-        imagePath: req.file.path,
+        imageSource: img,
         k: 10,
         sampleRate: 0.1,
         onFilterSimilarColors: false,
-        useHex: false
+        useHex: true,
     });
-  console.log('Extracted Colors:', colors);
-  console.log('Dominant Color:', dominantColor);
+    console.log("Extracted Colors:", colors);
+    console.log("Dominant Color:", dominantColor);
 }
 
 main();
+```
+
+### Server
+
+```javascript
+import { ColorExtractor } from "simply-color-extraction";
+import { NodeAdapter } from "simply-color-extraction/nodeAdapter";
+
+async function main(req, res) {
+    const adapter = new NodeAdapter();
+    const colorExtractor = ColorExtractor.getInstance(adapter);
+    const { colors, dominantColor } = await colorExtractor.extractColors({
+        imageSource: req.file.path,
+        k: 10,
+        sampleRate: 0.1,
+        onFilterSimilarColors: false,
+        useHex: true,
+    });
+
+    console.log("Extracted Colors:", colors);
+    console.log("Dominant Color:", dominantColor);
+
+    res.json({ colors, dominantColor });
+}
 ```
 
 
@@ -47,7 +76,7 @@ Returns the singleton instance of the ColorExtractor.
 ### extractColors(options: ExtractColorsOptions)
 
 Extract colors from an image.
-- options.imagePath (string): Path to the image file.
+- options.imageSource (string | HTMLImageElement): Path to the image file.
 - options.k (number, optional): Number of colors to extract (default is 10).
 - options.sampleRate (number, optional): Rate of pixel sampling (default is 0.1).
 - options.onFilterSimilarColors (boolean, optional): Whether to filter similar colors (default is false).

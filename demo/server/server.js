@@ -2,9 +2,9 @@ import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
 import multer from "multer";
-import { NodeAdapter } from "../../src/Adapter/nodeAdapter.js";
-import { ColorExtractor } from "../../src/core.js";
 import express from "express";
+import { ColorExtractor } from "simply-color-extraction";
+import { NodeAdapter } from "simply-color-extraction/nodeAdapter";
 
 const port = 3000;
 const app = express();
@@ -30,9 +30,10 @@ function initMulter(uploadDir) {
 
 async function handleFileUpload(req, res) {
   try {
-    const colorExtractor = ColorExtractor.getInstance(NodeAdapter);
+    const adapter = new NodeAdapter();
+    const colorExtractor = ColorExtractor.getInstance(adapter);
     const { colors, dominantColor } = await colorExtractor.extractColors({
-      imagePath: req.file.path,
+      imageSource: req.file.path,
       k: 10,
       sampleRate: 0.1,
       onFilterSimilarColors: false,

@@ -1,6 +1,6 @@
 import "./style.css";
-import { BrowserAdapter } from "../../../../src/Adapter/browserAdapter.js";
-import { ColorExtractor } from "../../../../src/core";
+import { ColorExtractor } from "simply-color-extraction";
+import { BrowserAdapter } from "simply-color-extraction/browserAdapter";
 
 document
   .getElementById("imageInput")

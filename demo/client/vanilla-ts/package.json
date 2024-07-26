@@ -1,7 +1,6 @@
 {
-  "name": "vanilla-ts",
-  "private": true,
-  "version": "0.0.0",
+  "name": "color-extraction-demo",
+  "version": "0.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,5 +10,8 @@
   "devDependencies": {
     "typescript": "^5.2.2",
     "vite": "^5.3.4"
+  },
+  "dependencies": {
+    "simply-color-extraction": "^0.0.4"
   }
 }
