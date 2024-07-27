@@ -12,7 +12,7 @@ ColorExtractor is a utility class for extracting dominant colors from images usi
 To use ColorExtractor, install the required dependencies.
 
 ```bash
-$ npm install nodejs-color-extraction
+$ npm install simply-color-extraction
 ```
 
 ## Usage
