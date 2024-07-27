@@ -25,45 +25,65 @@ Here is an example of how to use the ColorExtractor class.
 import { ColorExtractor } from "simply-color-extraction";
 import { BrowserAdapter } from "simply-color-extraction/browserAdapter";
 
-async function main() {
-    const adapter = new BrowserAdapter();
-    const colorExtractor = ColorExtractor.getInstance(adapter);
-    const { colors, dominantColor } = await colorExtractor.extractColors({
-        imageSource: img,
-        k: 10,
-        sampleRate: 0.1,
-        onFilterSimilarColors: false,
-        useHex: true,
-    });
-    console.log("Extracted Colors:", colors);
-    console.log("Dominant Color:", dominantColor);
+const file = event.target.files[0];
+if (file) {
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(file);
+    img.onload = async () => {
+        const adapter = new BrowserAdapter();
+        const colorExtractor = ColorExtractor.getInstance(adapter);
+        const { colors, dominantColor } = await colorExtractor.extractColors({
+            imageSource: img,
+            k: 10,
+            sampleRate: 0.1,
+            onFilterSimilarColors: false,
+            useHex: true,
+        });
+        console.log("Extracted Colors:", colors);
+        console.log("Dominant Color:", dominantColor);
+    };
 }
-
-main();
 ```
 
 ### Server
 
 ```javascript
+import multer from "multer";
 import { ColorExtractor } from "simply-color-extraction";
 import { NodeAdapter } from "simply-color-extraction/nodeAdapter";
 
-async function main(req, res) {
-    const adapter = new NodeAdapter();
-    const colorExtractor = ColorExtractor.getInstance(adapter);
-    const { colors, dominantColor } = await colorExtractor.extractColors({
-        imageSource: req.file.path,
-        k: 10,
-        sampleRate: 0.1,
-        onFilterSimilarColors: false,
-        useHex: true,
+function initMulter(uploadDir) {
+    return multer({
+        storage: multer.diskStorage({
+            destination: function (req, file, cb) {
+                cb(null, uploadDir);
+            },
+            filename: function (req, file, cb) {
+                cb(null, Date.now() + path.extname(file.originalname)); // 파일 확장자를 유지
+            },
+        }),
     });
-
-    console.log("Extracted Colors:", colors);
-    console.log("Dominant Color:", dominantColor);
-
-    res.json({ colors, dominantColor });
 }
+
+const upload = initMulter('uploads');
+
+app.post("/upload", upload.single("image"), async (req, res) => {
+    try {
+        const adapter = new NodeAdapter();
+        const colorExtractor = ColorExtractor.getInstance(adapter);
+        const { colors, dominantColor } = await colorExtractor.extractColors({
+            imageSource: req.file.path,
+            k: 10,
+            sampleRate: 0.1,
+            onFilterSimilarColors: false,
+            useHex: true,
+        });
+        res.json({ colors, dominantColor });
+    } catch (err) {
+        console.error("Error:", err);
+        res.status(500).send("Error processing image");
+    }
+});
 ```
 
 
